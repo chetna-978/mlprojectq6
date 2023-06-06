@@ -1,29 +1,26 @@
+import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 import pymongo
-from dataclasses import dataclass
-import os
-from flask import Flask, request, jsonify
+import pickle
+from dotenv import load_dotenv
+from data_dump import DATABASE_NAME, COLLECTION_NAME
 
-@dataclass
-class EnvironmentVariable:
-    mongo_db_url:str = os.getenv("MONGO_DB_URL")
-env_var = EnvironmentVariable()
-mongo_client = pymongo.MongoClient(env_var.mongo_db_url)
-# Load the dataset
-def get_collection_as_dataframe(database_name: str, collection_name: str) -> pd.DataFrame:
-    data = pd.DataFrame(list(mongo_client[database_name][collection_name].find()))
-    if "_id" in data.columns:
-        data = data.drop("_id", axis=1)
-    return data
+# Load environment variables from .env file
+load_dotenv()
 
-# Call the function to load the dataset
-data = get_collection_as_dataframe('loan_prediction', 'loan_predict')
+# Connect to MongoDB
+mongo_db_url = os.getenv("MONGO_DB_URL")
+mongo_client = pymongo.MongoClient(mongo_db_url)
+
+# Load the dataset from MongoDB
+collection = mongo_client[DATABASE_NAME][COLLECTION_NAME]
+data = pd.DataFrame(list(collection.find()))
 
 # Handling NaN values
-data.fillna(value=0, inplace=True)  # Replace NaN with 0 or specify another appropriate value
+data.fillna(value=0, inplace=True)
 
 # Preprocessing the dataset
 X = data.drop('Loan_Status', axis=1)
@@ -44,4 +41,10 @@ y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 print("Accuracy:", accuracy)
 
+# Save the trained model
+with open('model.pkl', 'wb') as file:
+    pickle.dump(model, file)
 
+# Save the encoder
+with open('encoder.pkl', 'wb') as file:
+    pickle.dump(X_encoded.columns, file)
