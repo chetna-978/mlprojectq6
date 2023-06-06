@@ -5,6 +5,12 @@ RUN mkdir /app
 COPY . /app/
 WORKDIR /app/
 
+# Install Docker
+RUN apk add --update docker
+
+# Build the Docker image
+RUN docker build -t  loan-app .
+
 # Install the required Python packages
 RUN pip3 install -r requirements.txt
 
@@ -20,8 +26,7 @@ ENV AIRFLOW__CORE__ENABLE_XCOM_PICKLING=True
 RUN airflow db init
 
 # Create an Airflow admin user
-RUN airflow users create -e YOUR_EMAIL -f YOUR_FIRST_NAME -l YOUR_LAST_NAME -p YOUR_PASSWORD -r Admin -u admin
-
+RUN airflow users create -e happychetna5@email.com -f chetna -l sharma -p admin -r Admin -u admin
 # Install the AWS CLI
 RUN apt update -y && apt install awscli -y
 
